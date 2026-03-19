@@ -6,7 +6,6 @@ namespace Drupal\Tests\taler_payments\Unit\Form;
 
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Messenger\MessengerInterface;
@@ -57,6 +56,7 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
     $typed_config_manager = $this->createMock(TypedConfigManagerInterface::class);
 
     $form = new TalerPaymentsSettingsForm($config_factory, $typed_config_manager);
+    $form->setConfigFactory($config_factory);
     $form->setStringTranslation($this->createTranslationStub());
 
     return $form;
@@ -87,17 +87,17 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
    * @covers ::buildForm
    */
   public function testBuildFormUsesConfiguredDefaultValue(): void {
-    $immutable_config = $this->createMock(ImmutableConfig::class);
-    $immutable_config->expects($this->once())
+    $editable_config = $this->createMock(Config::class);
+    $editable_config->expects($this->once())
       ->method('get')
       ->with('taler_base_url')
       ->willReturn('https://backend.demo.taler.net/instances/default');
 
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->expects($this->once())
-      ->method('get')
+      ->method('getEditable')
       ->with('taler_payments.settings')
-      ->willReturn($immutable_config);
+      ->willReturn($editable_config);
 
     $form = $this->createForm($config_factory);
     $form_state = new FormState();
