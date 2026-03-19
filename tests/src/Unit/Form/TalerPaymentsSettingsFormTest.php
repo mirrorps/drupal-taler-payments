@@ -110,6 +110,30 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
   }
 
   /**
+   * @covers ::buildForm
+   */
+  public function testBuildFormFallsBackToEmptyDefaultValue(): void {
+    $editable_config = $this->createMock(Config::class);
+    $editable_config->expects($this->once())
+      ->method('get')
+      ->with('taler_base_url')
+      ->willReturn(NULL);
+
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->expects($this->once())
+      ->method('getEditable')
+      ->with('taler_payments.settings')
+      ->willReturn($editable_config);
+
+    $form = $this->createForm($config_factory);
+    $form_state = new FormState();
+
+    $built_form = $form->buildForm([], $form_state);
+
+    $this->assertSame('', $built_form['taler_base_url']['#default_value']);
+  }
+
+  /**
    * @covers ::validateForm
    */
   public function testValidateFormRejectsInvalidValues(): void {
