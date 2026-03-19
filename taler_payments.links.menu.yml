@@ -1,0 +1,5 @@
+taler_payments.settings:
+  title: 'Taler Payments'
+  description: 'Configure GNU Taler integration settings.'
+  route_name: taler_payments.settings
+  parent: system.admin_config_services

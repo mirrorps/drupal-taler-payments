@@ -1,0 +1,6 @@
+name: Taler Payments
+type: module
+description: 'Integrate Taler payments into Drupal.'
+core_version_requirement: ^10 || ^11
+package: Custom
+configure: taler_payments.settings

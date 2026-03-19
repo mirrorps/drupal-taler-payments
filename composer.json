@@ -1,0 +1,16 @@
+{
+    "name": "drupal/taler_payments",
+    "description": "Custom Drupal module integrating GNU Taler payments via the TalerPHP SDK.",
+    "type": "drupal-custom-module",
+    "license": "GPL-2.0-or-later",
+    "keywords": ["drupal", "payments", "taler"],
+    "require": {
+        "php": ">=8.1",
+        "mirrorps/taler-php": "~1.2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Drupal\\taler_payments\\": "src/"
+        }
+    }
+}
