@@ -18,6 +18,7 @@ final class TalerPaymentsSettingsPageController extends ControllerBase {
     return [
       'base_url_form' => $this->formBuilder()->getForm('\Drupal\taler_payments\Form\TalerPaymentsSettingsForm'),
       'username_password_form' => $this->formBuilder()->getForm('\Drupal\taler_payments\Form\TalerPaymentsUsernamePasswordSettingsForm'),
+      'access_token_form' => $this->formBuilder()->getForm('\Drupal\taler_payments\Form\TalerPaymentsAccessTokenSettingsForm'),
     ];
   }
 

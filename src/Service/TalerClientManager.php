@@ -42,9 +42,24 @@ final class TalerClientManager {
     $instance_id = trim((string) $config->get('instance_id'));
     $username = trim((string) $config->get('username'));
     $encrypted_password = (string) $config->get('password');
+    $encrypted_access_token = (string) $config->get('access_token');
 
     if ($base_url === '') {
       throw new \RuntimeException('Taler base URL is not configured.');
+    }
+
+    if ($encrypted_access_token !== '') {
+      $access_token = $this->credentialEncryptor->decrypt($encrypted_access_token);
+      if ($access_token === '') {
+        throw new \RuntimeException('Taler access token could not be decrypted.');
+      }
+
+      $this->client = Factory::create([
+        'base_url' => $base_url,
+        'token' => $access_token,
+      ]);
+
+      return $this->client;
     }
 
     if ($instance_id === '' || $username === '' || $encrypted_password === '') {
@@ -95,9 +110,38 @@ final class TalerClientManager {
       'password' => $password,
       'instance' => $instance_id,
     ]);
+  }
 
-    // This request confirms the backend is reachable with the submitted auth.
-    $client->configApi()->getConfig();
+  /**
+   * Verifies submitted access token by calling the Taler config endpoint.
+   *
+   * @throws \RuntimeException
+   */
+  public function validateAccessTokenCredentials(string $access_token): void {
+    $config = $this->configFactory->get('taler_payments.settings');
+    $base_url = trim((string) $config->get('taler_base_url'));
+    $access_token = trim($access_token);
+
+    if ($base_url === '') {
+      throw new \RuntimeException('Taler base URL is not configured.');
+    }
+
+    if ($access_token === '') {
+      throw new \RuntimeException('Taler access token is not configured.');
+    }
+
+    $client = Factory::create([
+      'base_url' => $base_url,
+      'token' => $access_token,
+    ]);
+
+    // enforce an auth-sensitive check before accepting and storing the token.
+    $diagnostics = $client->configCheck();
+    $auth_ok = ($diagnostics['auth']['ok'] ?? false) === true;
+
+    if (!$auth_ok) {
+      throw new \RuntimeException('Taler access token validation failed.');
+    }
   }
 
 }
