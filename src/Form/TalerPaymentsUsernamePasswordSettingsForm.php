@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\taler_payments\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\taler_payments\Security\TalerCredentialEncryptor;
+use Drupal\taler_payments\Service\TalerClientManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -20,18 +23,42 @@ final class TalerPaymentsUsernamePasswordSettingsForm extends ConfigFormBase {
   private TalerCredentialEncryptor $credentialEncryptor;
 
   /**
+   * The Taler client manager service.
+   */
+  private TalerClientManager $talerClientManager;
+
+  /**
    * Constructs the form object.
    */
-  public function __construct(TalerCredentialEncryptor $credential_encryptor) {
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    TypedConfigManagerInterface $typed_config_manager,
+    TalerCredentialEncryptor $credential_encryptor,
+    TalerClientManager $taler_client_manager,
+  ) {
+    parent::__construct($config_factory, $typed_config_manager);
     $this->credentialEncryptor = $credential_encryptor;
+    $this->talerClientManager = $taler_client_manager;
   }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
+    /** @var \Drupal\Core\Config\ConfigFactoryInterface $config_factory */
+    $config_factory = $container->get('config.factory');
+    /** @var \Drupal\Core\Config\TypedConfigManagerInterface $typed_config_manager */
+    $typed_config_manager = $container->get('config.typed');
+    /** @var \Drupal\taler_payments\Security\TalerCredentialEncryptor $credential_encryptor */
+    $credential_encryptor = $container->get('taler_payments.credential_encryptor');
+    /** @var \Drupal\taler_payments\Service\TalerClientManager $taler_client_manager */
+    $taler_client_manager = $container->get('taler_payments.client_manager');
+
     return new static(
-      $container->get('taler_payments.credential_encryptor'),
+      $config_factory,
+      $typed_config_manager,
+      $credential_encryptor,
+      $taler_client_manager,
     );
   }
 
@@ -127,6 +154,35 @@ final class TalerPaymentsUsernamePasswordSettingsForm extends ConfigFormBase {
 
     if (!$this->credentialEncryptor->isEncryptionAvailable()) {
       $form_state->setErrorByName('password', $this->t('Password encryption is not available on this server.'));
+      return;
+    }
+
+    if ($form_state->hasAnyErrors()) {
+      return;
+    }
+
+    try {
+      $this->talerClientManager->validateUsernamePasswordCredentials(
+        $instance_id,
+        $username,
+        $password,
+      );
+    }
+    catch (\Throwable $e) {
+
+      \Drupal::logger('taler_payments')->error(
+        'Taler auth validation failed for instance "@instance" and user "@user". Error: @message',
+        [
+          '@instance' => $instance_id,
+          '@user' => $username,
+          '@message' => $e->getMessage(),
+        ]
+      );
+
+      $form_state->setErrorByName(
+        'username',
+        $this->t('Could not authenticate with Taler using the provided Instance ID, username, and password. Please verify the credentials and base URL.'),
+      );
     }
   }
 

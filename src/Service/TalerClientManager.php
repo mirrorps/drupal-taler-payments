@@ -66,4 +66,38 @@ final class TalerClientManager {
     return $this->client;
   }
 
+  /**
+   * Verifies submitted credentials by calling the Taler config endpoint.
+   *
+   * @throws \RuntimeException
+   */
+  public function validateUsernamePasswordCredentials(
+    string $instance_id,
+    string $username,
+    string $password,
+  ): void {
+    $config = $this->configFactory->get('taler_payments.settings');
+    $base_url = trim((string) $config->get('taler_base_url'));
+    $instance_id = trim($instance_id);
+    $username = trim($username);
+
+    if ($base_url === '') {
+      throw new \RuntimeException('Taler base URL is not configured.');
+    }
+
+    if ($instance_id === '' || $username === '' || $password === '') {
+      throw new \RuntimeException('Taler username/password credentials are not fully configured.');
+    }
+
+    $client = Factory::create([
+      'base_url' => $base_url,
+      'username' => $username,
+      'password' => $password,
+      'instance' => $instance_id,
+    ]);
+
+    // This request confirms the backend is reachable with the submitted auth.
+    $client->configApi()->getConfig();
+  }
+
 }
