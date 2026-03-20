@@ -1,0 +1,8 @@
+services:
+  taler_payments.credential_encryptor:
+    class: Drupal\taler_payments\Security\TalerCredentialEncryptor
+  taler_payments.client_manager:
+    class: Drupal\taler_payments\Service\TalerClientManager
+    arguments:
+      - '@config.factory'
+      - '@taler_payments.credential_encryptor'

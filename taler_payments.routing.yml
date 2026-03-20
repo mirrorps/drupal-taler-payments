@@ -1,7 +1,7 @@
 taler_payments.settings:
   path: '/admin/config/services/taler-payments'
   defaults:
-    _form: '\Drupal\taler_payments\Form\TalerPaymentsSettingsForm'
+    _controller: '\Drupal\taler_payments\Controller\TalerPaymentsSettingsPageController'
     _title: 'Taler Payments'
   requirements:
     _permission: 'administer site configuration'

@@ -33,7 +33,13 @@ final class TalerPaymentsSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('taler_payments.settings');
 
-    $form['taler_base_url'] = [
+    $form['base_url'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Base URL'),
+      '#open' => TRUE,
+    ];
+
+    $form['base_url']['taler_base_url'] = [
       '#type' => 'url',
       '#title' => $this->t('Taler Base URL'),
       '#description' => $this->t('Important: the Base URL must include the instance path (e.g. /instances/) and must start with https://<br>
@@ -44,7 +50,16 @@ Example: https://backend.demo.taler.net/instances/sandbox'),
       '#placeholder' => 'https://backend.demo.taler.net/instances/default',
     ];
 
-    return parent::buildForm($form, $form_state);
+    $form = parent::buildForm($form, $form_state);
+
+    // Keep the submit button inside the details section so it is hidden when
+    // the section is collapsed.
+    if (isset($form['actions']['submit'])) {
+      $form['base_url']['actions'] = $form['actions'];
+      unset($form['actions']);
+    }
+
+    return $form;
   }
 
   /**

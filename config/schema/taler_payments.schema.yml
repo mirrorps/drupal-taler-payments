@@ -5,3 +5,12 @@ taler_payments.settings:
     taler_base_url:
       type: uri
       label: 'Taler Base URL'
+    instance_id:
+      type: string
+      label: 'Instance ID'
+    username:
+      type: string
+      label: 'Username'
+    password:
+      type: string
+      label: 'Encrypted Password'
