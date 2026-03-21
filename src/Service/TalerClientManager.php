@@ -12,7 +12,7 @@ use Taler\Taler;
 /**
  * Builds configured Taler SDK clients for this Drupal module.
  */
-final class TalerClientManager {
+class TalerClientManager {
 
   /**
    * Cached SDK client for the current request lifecycle.

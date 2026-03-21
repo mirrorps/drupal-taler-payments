@@ -6,7 +6,11 @@
     "keywords": ["drupal", "payments", "taler"],
     "require": {
         "php": ">=8.1",
+        "ext-openssl": "*",
         "mirrorps/taler-php": "~1.2.0"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-latest"
     },
     "autoload": {
         "psr-4": {

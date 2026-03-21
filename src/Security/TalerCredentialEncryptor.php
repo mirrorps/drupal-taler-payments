@@ -9,13 +9,22 @@ use Drupal\Core\Site\Settings;
 /**
  * Encrypts sensitive credentials before config persistence.
  */
-final class TalerCredentialEncryptor {
+class TalerCredentialEncryptor {
 
   /**
    * Indicates whether encryption is available in this environment.
    */
   public function isEncryptionAvailable(): bool {
-    return function_exists('openssl_encrypt') && Settings::getHashSalt() !== '';
+    if (!function_exists('openssl_encrypt')) {
+      return FALSE;
+    }
+
+    try {
+      return Settings::getHashSalt() !== '';
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
   }
 
   /**

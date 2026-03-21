@@ -32,13 +32,13 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
     $translation = $this->createMock(TranslationInterface::class);
 
     $translation->method('translate')
-      ->willReturnCallback(static fn (string $string, array $args = [], array $options = []): TranslatableMarkup => new TranslatableMarkup($string, $args, $options, $translation));
+                ->willReturnCallback(static fn (string $string, array $args = [], array $options = []): TranslatableMarkup => new TranslatableMarkup($string, $args, $options, $translation));
 
     $translation->method('translateString')
-      ->willReturnCallback(static fn (TranslatableMarkup $translated_string): string => $translated_string->getUntranslatedString());
+                ->willReturnCallback(static fn (TranslatableMarkup $translated_string): string => $translated_string->getUntranslatedString());
 
     $translation->method('formatPlural')
-      ->willReturnCallback(static fn (int $count, string $singular, string $plural): TranslatableMarkup => new TranslatableMarkup($count === 1 ? $singular : $plural, [], [], $translation));
+                ->willReturnCallback(static fn (int $count, string $singular, string $plural): TranslatableMarkup => new TranslatableMarkup($count === 1 ? $singular : $plural, [], [], $translation));
 
     return $translation;
   }
@@ -89,24 +89,24 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
   public function testBuildFormUsesConfiguredDefaultValue(): void {
     $editable_config = $this->createMock(Config::class);
     $editable_config->expects($this->once())
-      ->method('get')
-      ->with('taler_base_url')
-      ->willReturn('https://backend.demo.taler.net/instances/default');
+                    ->method('get')
+                    ->with('taler_base_url')
+                    ->willReturn('https://backend.demo.taler.net/instances/default');
 
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->expects($this->once())
-      ->method('getEditable')
-      ->with('taler_payments.settings')
-      ->willReturn($editable_config);
+                   ->method('getEditable')
+                   ->with('taler_payments.settings')
+                   ->willReturn($editable_config);
 
     $form = $this->createForm($config_factory);
     $form_state = new FormState();
 
     $built_form = $form->buildForm([], $form_state);
 
-    $this->assertSame('url', $built_form['taler_base_url']['#type']);
-    $this->assertTrue($built_form['taler_base_url']['#required']);
-    $this->assertSame('https://backend.demo.taler.net/instances/default', $built_form['taler_base_url']['#default_value']);
+    $this->assertSame('url', $built_form['base_url']['taler_base_url']['#type']);
+    $this->assertTrue($built_form['base_url']['taler_base_url']['#required']);
+    $this->assertSame('https://backend.demo.taler.net/instances/default', $built_form['base_url']['taler_base_url']['#default_value']);
   }
 
   /**
@@ -115,22 +115,22 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
   public function testBuildFormFallsBackToEmptyDefaultValue(): void {
     $editable_config = $this->createMock(Config::class);
     $editable_config->expects($this->once())
-      ->method('get')
-      ->with('taler_base_url')
-      ->willReturn(NULL);
+                    ->method('get')
+                    ->with('taler_base_url')
+                    ->willReturn(NULL);
 
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->expects($this->once())
-      ->method('getEditable')
-      ->with('taler_payments.settings')
-      ->willReturn($editable_config);
+                   ->method('getEditable')
+                   ->with('taler_payments.settings')
+                   ->willReturn($editable_config);
 
     $form = $this->createForm($config_factory);
     $form_state = new FormState();
 
     $built_form = $form->buildForm([], $form_state);
 
-    $this->assertSame('', $built_form['taler_base_url']['#default_value']);
+    $this->assertSame('', $built_form['base_url']['taler_base_url']['#default_value']);
   }
 
   /**
@@ -191,23 +191,23 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
   public function testSubmitFormPersistsConfiguredBaseUrl(): void {
     $editable_config = $this->createMock(Config::class);
     $editable_config->expects($this->once())
-      ->method('set')
-      ->with('taler_base_url', 'https://backend.demo.taler.net/instances/default')
-      ->willReturnSelf();
+                    ->method('set')
+                    ->with('taler_base_url', 'https://backend.demo.taler.net/instances/default')
+                    ->willReturnSelf();
     $editable_config->expects($this->once())
-      ->method('save');
+                    ->method('save');
 
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->expects($this->once())
-      ->method('getEditable')
-      ->with('taler_payments.settings')
-      ->willReturn($editable_config);
+                   ->method('getEditable')
+                   ->with('taler_payments.settings')
+                   ->willReturn($editable_config);
 
     $form = $this->createForm($config_factory);
 
     $messenger = $this->createMock(MessengerInterface::class);
     $messenger->expects($this->once())
-      ->method('addStatus');
+              ->method('addStatus');
     $form->setMessenger($messenger);
 
     $form_state = new FormState();

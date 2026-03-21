@@ -31,7 +31,7 @@ final class TalerPaymentsSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->config('taler_payments.settings');
+    $config = $this->configFactory->getEditable('taler_payments.settings');
 
     $form['base_url'] = [
       '#type' => 'details',
