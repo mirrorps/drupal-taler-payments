@@ -7,22 +7,25 @@ namespace Drupal\Tests\taler_payments\Unit\Form;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Form\FormState;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslationInterface;
-use Drupal\taler_payments\Form\TalerPaymentsAccessTokenSettingsForm;
+use Drupal\taler_payments\Form\TalerPaymentsUsernamePasswordSettingsForm;
 use Drupal\taler_payments\Security\TalerCredentialEncryptor;
 use Drupal\taler_payments\Service\TalerClientManager;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests the access token settings form.
+ * Tests the username/password settings form.
  *
- * @coversDefaultClass \Drupal\taler_payments\Form\TalerPaymentsAccessTokenSettingsForm
+ * @coversDefaultClass \Drupal\taler_payments\Form\TalerPaymentsUsernamePasswordSettingsForm
  * @group taler_payments
  */
-final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
+final class TalerPaymentsUsernamePasswordSettingsFormTest extends TestCase {
 
   protected function setUp(): void {
     parent::setUp();
@@ -30,8 +33,12 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
     // Drupal tracks "any form errors" as a global static flag on FormState.
     // Reset it so validation paths are isolated per test.
     $any_errors = new \ReflectionProperty(FormState::class, 'anyErrors');
-    // $any_errors->setAccessible(TRUE);
     $any_errors->setValue(NULL, FALSE);
+  }
+
+  protected function tearDown(): void {
+    \Drupal::unsetContainer();
+    parent::tearDown();
   }
 
   /**
@@ -57,7 +64,7 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
 
   /**
    * Builds the settings form with minimal dependencies.
-   *
+   * 
    * The config factory mock.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *
@@ -68,16 +75,16 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
    * @param \Drupal\taler_payments\Service\TalerClientManager $taler_client_manager
    *
    * The settings form instance.
-   * @return \Drupal\taler_payments\Form\TalerPaymentsAccessTokenSettingsForm
+   * @return \Drupal\taler_payments\Form\TalerPaymentsUsernamePasswordSettingsForm
    */
   private function createForm(
     ConfigFactoryInterface $config_factory,
     TalerCredentialEncryptor $credential_encryptor,
     TalerClientManager $taler_client_manager,
-  ): TalerPaymentsAccessTokenSettingsForm {
+  ): TalerPaymentsUsernamePasswordSettingsForm {
     $typed_config_manager = $this->createMock(TypedConfigManagerInterface::class);
 
-    $form = new TalerPaymentsAccessTokenSettingsForm(
+    $form = new TalerPaymentsUsernamePasswordSettingsForm(
       $config_factory,
       $typed_config_manager,
       $credential_encryptor,
@@ -98,7 +105,7 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
     $taler_client_manager = $this->createMock(TalerClientManager::class);
     $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
 
-    $this->assertSame('taler_payments_access_token_settings_form', $form->getFormId());
+    $this->assertSame('taler_payments_username_password_settings_form', $form->getFormId());
   }
 
   /**
@@ -118,7 +125,19 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
    * @covers ::buildForm
    */
   public function testBuildFormCreatesExpectedElementsAndMovesSubmitAction(): void {
+    $editable_config = $this->createMock(Config::class);
+    $editable_config->method('get')
+                    ->willReturnMap([
+                      ['instance_id', 'my-instance'],
+                      ['username', 'my-user'],
+                    ]);
+
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->expects($this->once())
+                   ->method('getEditable')
+                   ->with('taler_payments.settings')
+                   ->willReturn($editable_config);
+
     $credential_encryptor = $this->createMock(TalerCredentialEncryptor::class);
     $taler_client_manager = $this->createMock(TalerClientManager::class);
     $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
@@ -126,22 +145,26 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
     $form_state = new FormState();
     $built_form = $form->buildForm([], $form_state);
 
-    $this->assertSame('details', $built_form['access_token']['#type']);
-    $this->assertTrue($built_form['access_token']['#open']);
-    $this->assertSame('textfield', $built_form['access_token']['taler_access_token']['#type']);
-    $this->assertTrue($built_form['access_token']['taler_access_token']['#required']);
-    $this->assertSame(4096, $built_form['access_token']['taler_access_token']['#maxlength']);
-    $this->assertSame('', $built_form['access_token']['taler_access_token']['#default_value']);
-    $this->assertSame('off', $built_form['access_token']['taler_access_token']['#attributes']['autocomplete']);
-    $this->assertSame('Bearer secret-token:sandbox', $built_form['access_token']['taler_access_token']['#placeholder']);
-    $this->assertArrayHasKey('actions', $built_form['access_token']);
+    $this->assertSame('details', $built_form['username_password']['#type']);
+    $this->assertTrue($built_form['username_password']['#open']);
+    $this->assertSame('textfield', $built_form['username_password']['instance_id']['#type']);
+    $this->assertTrue($built_form['username_password']['instance_id']['#required']);
+    $this->assertSame('my-instance', $built_form['username_password']['instance_id']['#default_value']);
+    $this->assertSame(255, $built_form['username_password']['instance_id']['#maxlength']);
+    $this->assertSame('textfield', $built_form['username_password']['username']['#type']);
+    $this->assertTrue($built_form['username_password']['username']['#required']);
+    $this->assertSame('my-user', $built_form['username_password']['username']['#default_value']);
+    $this->assertSame('password', $built_form['username_password']['password']['#type']);
+    $this->assertTrue($built_form['username_password']['password']['#required']);
+    $this->assertSame('new-password', $built_form['username_password']['password']['#attributes']['autocomplete']);
+    $this->assertArrayHasKey('actions', $built_form['username_password']);
     $this->assertArrayNotHasKey('actions', $built_form);
   }
 
   /**
    * @covers ::validateForm
    */
-  public function testValidateFormRejectsEmptyAccessTokenAndTrimsInput(): void {
+  public function testValidateFormRejectsEmptyCredentialsAndTrimsInput(): void {
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $credential_encryptor = $this->createMock(TalerCredentialEncryptor::class);
     $credential_encryptor->expects($this->once())
@@ -150,19 +173,23 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
 
     $taler_client_manager = $this->createMock(TalerClientManager::class);
     $taler_client_manager->expects($this->never())
-                         ->method('validateAccessTokenCredentials');
+                         ->method('validateUsernamePasswordCredentials');
 
     $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
 
     $form_state = new FormState();
-    $form_state->setValue('taler_access_token', '   ');
+    $form_state->setValue('instance_id', '   ');
+    $form_state->setValue('username', '   ');
+    $form_state->setValue('password', '');
     $form_array = [];
     $form->validateForm($form_array, $form_state);
 
-    $this->assertSame('', $form_state->getValue('taler_access_token'));
+    $this->assertSame('', $form_state->getValue('instance_id'));
+    $this->assertSame('', $form_state->getValue('username'));
     $errors = $form_state->getErrors();
-    $this->assertArrayHasKey('taler_access_token', $errors);
-    $this->assertStringContainsString('required', (string) $errors['taler_access_token']);
+    $this->assertArrayHasKey('instance_id', $errors);
+    $this->assertArrayHasKey('username', $errors);
+    $this->assertArrayHasKey('password', $errors);
   }
 
   /**
@@ -178,24 +205,26 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
 
     $taler_client_manager = $this->createMock(TalerClientManager::class);
     $taler_client_manager->expects($this->never())
-                         ->method('validateAccessTokenCredentials');
+                         ->method('validateUsernamePasswordCredentials');
 
     $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
 
     $form_state = new FormState();
-    $form_state->setValue('taler_access_token', 'Bearer valid-token');
+    $form_state->setValue('instance_id', 'inst');
+    $form_state->setValue('username', 'user');
+    $form_state->setValue('password', 'secret');
     $form_array = [];
     $form->validateForm($form_array, $form_state);
 
     $errors = $form_state->getErrors();
-    $this->assertArrayHasKey('taler_access_token', $errors);
-    $this->assertStringContainsString('encryption is not available', (string) $errors['taler_access_token']);
+    $this->assertArrayHasKey('password', $errors);
+    $this->assertStringContainsString('encryption is not available', (string) $errors['password']);
   }
 
   /**
    * @covers ::validateForm
    */
-  public function testValidateFormAcceptsValidTokenAndCallsClientManager(): void {
+  public function testValidateFormAcceptsValidCredentialsAndCallsClientManager(): void {
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
 
     $credential_encryptor = $this->createMock(TalerCredentialEncryptor::class);
@@ -205,24 +234,41 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
 
     $taler_client_manager = $this->createMock(TalerClientManager::class);
     $taler_client_manager->expects($this->once())
-                         ->method('validateAccessTokenCredentials')
-                         ->with('Bearer valid-token');
+                         ->method('validateUsernamePasswordCredentials')
+                         ->with('inst', 'user', 'secret');
 
     $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
 
     $form_state = new FormState();
-    $form_state->setValue('taler_access_token', '  Bearer valid-token  ');
+    $form_state->setValue('instance_id', '  inst  ');
+    $form_state->setValue('username', '  user  ');
+    $form_state->setValue('password', 'secret');
     $form_array = [];
     $form->validateForm($form_array, $form_state);
 
-    $this->assertSame('Bearer valid-token', $form_state->getValue('taler_access_token'));
+    $this->assertSame('inst', $form_state->getValue('instance_id'));
+    $this->assertSame('user', $form_state->getValue('username'));
     $this->assertSame([], $form_state->getErrors());
   }
 
   /**
    * @covers ::validateForm
    */
-  public function testValidateFormRejectsWhenTokenAuthenticationFails(): void {
+  public function testValidateFormRejectsWhenAuthenticationFails(): void {
+    $logger = $this->createMock(LoggerChannelInterface::class);
+    $logger->expects($this->once())
+           ->method('error');
+
+    $logger_factory = $this->createMock(LoggerChannelFactoryInterface::class);
+    $logger_factory->expects($this->once())
+                   ->method('get')
+                   ->with('taler_payments')
+                   ->willReturn($logger);
+
+    $container = new ContainerBuilder();
+    $container->set('logger.factory', $logger_factory);
+    \Drupal::setContainer($container);
+
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
 
     $credential_encryptor = $this->createMock(TalerCredentialEncryptor::class);
@@ -232,37 +278,42 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
 
     $taler_client_manager = $this->createMock(TalerClientManager::class);
     $taler_client_manager->expects($this->once())
-                         ->method('validateAccessTokenCredentials')
-                         ->with('Bearer invalid-token')
+                         ->method('validateUsernamePasswordCredentials')
+                         ->with('inst', 'user', 'wrong')
                          ->willThrowException(new \RuntimeException('Auth failed'));
 
     $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
 
     $form_state = new FormState();
-    $form_state->setValue('taler_access_token', 'Bearer invalid-token');
+    $form_state->setValue('instance_id', 'inst');
+    $form_state->setValue('username', 'user');
+    $form_state->setValue('password', 'wrong');
     $form_array = [];
     $form->validateForm($form_array, $form_state);
 
     $errors = $form_state->getErrors();
-    $this->assertArrayHasKey('taler_access_token', $errors);
-    $this->assertStringContainsString('Could not authenticate with Taler', (string) $errors['taler_access_token']);
+    $this->assertArrayHasKey('username', $errors);
+    $this->assertStringContainsString('Could not authenticate with Taler', (string) $errors['username']);
   }
 
   /**
    * @covers ::submitForm
    */
-  public function testSubmitFormEncryptsAndPersistsAccessToken(): void {
+  public function testSubmitFormEncryptsAndPersistsCredentials(): void {
     $credential_encryptor = $this->createMock(TalerCredentialEncryptor::class);
     $credential_encryptor->expects($this->once())
                          ->method('encrypt')
-                         ->with('Bearer valid-token')
-                         ->willReturn('encrypted-access-token');
+                         ->with('plain-secret')
+                         ->willReturn('encrypted-password');
 
     $editable_config = $this->createMock(Config::class);
-    $editable_config->expects($this->once())
+    $sets = [];
+    $editable_config->expects($this->exactly(3))
                     ->method('set')
-                    ->with('access_token', 'encrypted-access-token')
-                    ->willReturnSelf();
+                    ->willReturnCallback(function (string $key, $value) use (&$sets, $editable_config) {
+                      $sets[] = [$key, $value];
+                      return $editable_config;
+                    });
     $editable_config->expects($this->once())
                     ->method('save');
 
@@ -281,10 +332,18 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
     $form->setMessenger($messenger);
 
     $form_state = new FormState();
-    $form_state->setValue('taler_access_token', 'Bearer valid-token');
+    $form_state->setValue('instance_id', 'my-inst');
+    $form_state->setValue('username', 'my-user');
+    $form_state->setValue('password', 'plain-secret');
 
     $form_array = [];
     $form->submitForm($form_array, $form_state);
+
+    $this->assertSame([
+      ['instance_id', 'my-inst'],
+      ['username', 'my-user'],
+      ['password', 'encrypted-password'],
+    ], $sets);
   }
 
 }
