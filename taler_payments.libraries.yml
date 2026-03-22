@@ -1,0 +1,4 @@
+payment_button:
+  css:
+    theme:
+      css/taler-payment-button.css: {}

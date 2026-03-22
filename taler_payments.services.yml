@@ -1,4 +1,9 @@
 services:
+  taler_payments.amount_input_validator:
+    class: Drupal\taler_payments\Validation\TalerAmountInputValidator
+    arguments: ['@string_translation']
+  taler_payments.payment_button_builder:
+    class: Drupal\taler_payments\TalerPaymentButtonBuilder
   taler_payments.credential_encryptor:
     class: Drupal\taler_payments\Security\TalerCredentialEncryptor
   taler_payments.client_manager:

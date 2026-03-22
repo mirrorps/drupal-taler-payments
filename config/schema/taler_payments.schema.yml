@@ -1,3 +1,17 @@
+block.settings.taler_payment_button:
+  type: block_settings
+  label: 'Taler payment button block'
+  mapping:
+    button_text:
+      type: string
+      label: 'Button text'
+    summary:
+      type: string
+      label: 'Summary'
+    amount:
+      type: string
+      label: 'Amount'
+
 taler_payments.settings:
   type: config_object
   label: 'Taler Payments settings'
