@@ -19,3 +19,112 @@
   background-color: #1565c0;
   color: #fff;
 }
+
+.taler-payment-button-wrapper .taler-payment-button.is-disabled,
+.taler-payment-button-wrapper .taler-payment-button[aria-disabled="true"] {
+  opacity: 0.75;
+  pointer-events: none;
+  cursor: progress;
+}
+
+.taler-checkout-page {
+  max-width: 48rem;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(16 24 40 / 8%);
+}
+
+.taler-checkout-page .taler-checkout-meta {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #edf0f5;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.taler-checkout-page .taler-checkout-intro {
+  margin: 0;
+  color: #4b5563;
+}
+
+.taler-checkout-page .taler-checkout-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e8eef5;
+}
+
+.taler-checkout-page .taler-checkout-meta-row:last-child {
+  border-bottom: 0;
+}
+
+.taler-checkout-page .taler-checkout-meta-label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.taler-checkout-page .taler-checkout-meta-value {
+  color: #111827;
+  text-align: right;
+}
+
+.taler-checkout-page .taler-checkout-meta-value-amount {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.taler-checkout-page .taler-checkout-meta-value-order-id {
+  font-family: monospace;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.taler-checkout-page .taler-checkout-pay-link {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+  padding: 0.625rem 1rem;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgb(13 71 161 / 25%);
+}
+
+.taler-checkout-page .taler-checkout-wallet-hint {
+  /* margin-top: 0.35rem; */
+  color: #475467;
+  font-size: 0.80rem;
+}
+
+.taler-checkout-page .taler-checkout-wallet-hint a {
+  font-weight: 600;
+}
+
+.taler-checkout-page .taler-checkout-status {
+  margin-top: 0.9rem;
+  margin-bottom: 0.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+}
+
+.taler-checkout-page .taler-checkout-status-success {
+  border: 1px solid #badbcc;
+  background-color: #d1e7dd;
+  color: #0f5132;
+  font-weight: 600;
+}
+
+.taler-checkout-page .taler-checkout-status-pending {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.taler-checkout-page .taler-checkout-status-warning {
+  border-color: #f5c2c7;
+  background: #f8d7da;
+  color: #842029;
+}

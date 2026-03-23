@@ -11,3 +11,14 @@ services:
     arguments:
       - '@config.factory'
       - '@taler_payments.credential_encryptor'
+  taler_payments.checkout_intent_store:
+    class: Drupal\taler_payments\Checkout\CheckoutIntentStore
+    arguments:
+      - '@request_stack'
+  taler_payments.checkout_manager:
+    class: Drupal\taler_payments\Checkout\TalerCheckoutManager
+    arguments:
+      - '@taler_payments.client_manager'
+      - '@taler_payments.checkout_intent_store'
+      - '@uuid'
+      - '@logger.factory'

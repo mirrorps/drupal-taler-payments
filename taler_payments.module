@@ -4,3 +4,15 @@
  * @file
  * Taler Payments module.
  */
+
+/**
+ * Implements hook_allowed_protocols_alter().
+ *
+ * https://github.com/mirrorps/taler-php?tab=readme-ov-file#4-allow-the-taler-uri-scheme
+ *
+ */
+function taler_payments_allowed_protocols_alter(array &$protocols): void {
+  if (!in_array('taler', $protocols, TRUE)) {
+    $protocols[] = 'taler';
+  }
+}

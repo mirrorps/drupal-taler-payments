@@ -5,3 +5,18 @@ taler_payments.settings:
     _title: 'Taler Payments'
   requirements:
     _permission: 'administer site configuration'
+
+taler_payments.checkout_start:
+  path: '/taler-payments/checkout/start'
+  defaults:
+    _controller: '\Drupal\taler_payments\Controller\TalerCheckoutController::start'
+  requirements:
+    _access: 'TRUE'
+
+taler_payments.checkout_page:
+  path: '/taler-payments/checkout/{order_id}'
+  defaults:
+    _controller: '\Drupal\taler_payments\Controller\TalerCheckoutController::checkout'
+    _title_callback: '\Drupal\taler_payments\Controller\TalerCheckoutController::checkoutTitle'
+  requirements:
+    _access: 'TRUE'

@@ -16,6 +16,9 @@ final class TalerPaymentButtonBuilder implements TalerPaymentButtonBuilderInterf
    */
   public function build(array $configuration): array {
     $button_text = (string) ($configuration['button_text'] ?? '');
+    $title = trim((string) ($configuration['label'] ?? ''));
+    $amount = trim((string) ($configuration['amount'] ?? ''));
+    $summary = trim((string) ($configuration['summary'] ?? ''));
 
     $build = [
       '#type' => 'container',
@@ -27,9 +30,16 @@ final class TalerPaymentButtonBuilder implements TalerPaymentButtonBuilderInterf
     $build['link'] = [
       '#type' => 'link',
       '#title' => $button_text,
-      '#url' => Url::fromRoute('<front>'),
+      '#url' => Url::fromRoute('taler_payments.checkout_start', [], [
+        'query' => [
+          'title' => $title,
+          'amount' => $amount,
+          'summary' => $summary,
+        ],
+      ]),
       '#attributes' => [
         'class' => ['taler-payment-button'],
+        'data-disable-once' => 'true',
       ],
     ];
 

@@ -21,9 +21,10 @@ final class TalerPaymentButtonBuilderTest extends TestCase {
   public function testBuildOutputsContainerLinkAndLibraryOnly(): void {
     $builder = new TalerPaymentButtonBuilder();
     $build = $builder->build([
+      'label' => 'Donation checkout',
       'button_text' => 'Pay',
-      'summary' => '',
-      'amount' => '',
+      'summary' => 'Order summary',
+      'amount' => 'EUR:1.00',
     ]);
 
     $this->assertSame('container', $build['#type']);
@@ -31,7 +32,11 @@ final class TalerPaymentButtonBuilderTest extends TestCase {
     $this->assertArrayNotHasKey('amount', $build);
     $this->assertSame('Pay', $build['link']['#title']);
     $this->assertInstanceOf(Url::class, $build['link']['#url']);
-    $this->assertSame('<front>', $build['link']['#url']->getRouteName());
+    $this->assertSame('taler_payments.checkout_start', $build['link']['#url']->getRouteName());
+    $this->assertSame('Donation checkout', $build['link']['#url']->getOption('query')['title']);
+    $this->assertSame('EUR:1.00', $build['link']['#url']->getOption('query')['amount']);
+    $this->assertSame('Order summary', $build['link']['#url']->getOption('query')['summary']);
+    $this->assertSame('true', $build['link']['#attributes']['data-disable-once']);
     $this->assertSame(['taler_payments/payment_button'], $build['#attached']['library']);
   }
 
@@ -58,6 +63,7 @@ final class TalerPaymentButtonBuilderTest extends TestCase {
     $build = $builder->build([]);
 
     $this->assertSame('', $build['link']['#title']);
+    $this->assertSame('', $build['link']['#url']->getOption('query')['title']);
   }
 
 }

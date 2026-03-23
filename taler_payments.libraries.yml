@@ -1,4 +1,9 @@
 payment_button:
+  js:
+    js/taler-payment-button.js: {}
   css:
     theme:
       css/taler-payment-button.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
