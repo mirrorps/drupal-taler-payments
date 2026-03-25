@@ -46,6 +46,14 @@
     payLinkEl.setAttribute('tabindex', '-1');
   }
 
+  function hideWalletHint(walletHintEl) {
+    if (!walletHintEl) {
+      return;
+    }
+    walletHintEl.classList.add('is-hidden');
+    walletHintEl.setAttribute('aria-hidden', 'true');
+  }
+
   Drupal.behaviors.talerCheckoutPolling = {
     attach(context, settings) {
       once('taler-checkout-polling', '.taler-checkout-page', context).forEach((pageEl) => {
@@ -55,6 +63,7 @@
 
         const statusEl = pageEl.querySelector('.taler-checkout-status');
         const payLinkEl = pageEl.querySelector('.taler-checkout-pay-link');
+        const walletHintEl = pageEl.querySelector('.taler-checkout-wallet-hint');
 
         if (!orderId || !statusUrl || !statusEl) {
           return;
@@ -68,6 +77,7 @@
           const pres = statusToPresentation(currentStatus);
           if (pres.hidePayLink) {
             hidePayLink(payLinkEl);
+            hideWalletHint(walletHintEl);
           }
           return;
         }
@@ -102,6 +112,7 @@
 
             if (pres.hidePayLink) {
               hidePayLink(payLinkEl);
+              hideWalletHint(walletHintEl);
             }
 
             if (isFinalStatus(currentStatus)) {

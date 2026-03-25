@@ -102,6 +102,10 @@
   font-size: 0.80rem;
 }
 
+.taler-checkout-page .taler-checkout-wallet-hint.is-hidden {
+  display: none;
+}
+
 .taler-checkout-page .taler-checkout-wallet-hint a {
   font-weight: 600;
 }
