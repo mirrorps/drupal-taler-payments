@@ -12,6 +12,7 @@ use Drupal\taler_payments\Checkout\TalerCheckoutManagerInterface;
 use Drupal\taler_payments\Controller\TalerCheckoutController;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -150,6 +151,7 @@ final class TalerCheckoutControllerTest extends TestCase {
     $this->assertSame('taler://pay/mock', $build['pay_link']['#attributes']['href']);
     $this->assertArrayHasKey('wallet_hint', $build);
     $this->assertSame('taler_payments/payment_button', $build['#attached']['library'][0]);
+    $this->assertSame('order-1', $build['#attached']['drupalSettings']['talerPaymentsCheckout']['orderId']);
     $this->assertSame('taler_payments_taler_support_meta', $build['#attached']['html_head'][0][1]);
     $this->assertSame(0, $build['#cache']['max-age']);
   }
@@ -238,6 +240,38 @@ final class TalerCheckoutControllerTest extends TestCase {
 
     $this->assertArrayHasKey('status', $build);
     $this->assertStringContainsString('no longer available', (string) $build['status']['#value']);
+  }
+
+  /**
+   * @covers ::status
+   */
+  public function testStatusReturnsNotFoundForMissingCheckout(): void {
+    $manager = $this->createMock(TalerCheckoutManagerInterface::class);
+    $manager->method('getCheckoutByOrderId')->with('missing')->willReturn(NULL);
+
+    $controller = $this->createController($manager);
+    $response = $controller->status('missing');
+
+    $this->assertInstanceOf(JsonResponse::class, $response);
+    $data = json_decode((string) $response->getContent(), TRUE);
+    $this->assertSame('not_found', $data['status']);
+    $this->assertTrue($data['is_final']);
+  }
+
+  /**
+   * @covers ::status
+   */
+  public function testStatusReturnsPaidFinalState(): void {
+    $manager = $this->createMock(TalerCheckoutManagerInterface::class);
+    $manager->method('getCheckoutByOrderId')->with('order-paid')->willReturn(['status' => 'paid']);
+
+    $controller = $this->createController($manager);
+    $response = $controller->status('order-paid');
+
+    $this->assertInstanceOf(JsonResponse::class, $response);
+    $data = json_decode((string) $response->getContent(), TRUE);
+    $this->assertSame('paid', $data['status']);
+    $this->assertTrue($data['is_final']);
   }
 
   /**

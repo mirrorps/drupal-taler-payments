@@ -1,0 +1,135 @@
+/**
+ * @file
+ * Polls checkout order status and updates UI.
+ */
+
+(function (Drupal, once) {
+  'use strict';
+
+  const DEFAULT_INTERVAL_MS = 5000;
+  const MAX_UNKNOWN_POLLS = 20;
+
+  function isFinalStatus(status) {
+    return status === 'paid' || status === 'cancelled' || status === 'not_found';
+  }
+
+  function statusToPresentation(status) {
+    switch (status) {
+      case 'paid':
+        return { text: Drupal.t('Payment completed.'), className: 'taler-checkout-status-success', hidePayLink: true };
+      case 'cancelled':
+        return { text: Drupal.t('Payment cancelled.'), className: 'taler-checkout-status-warning', hidePayLink: true };
+      case 'not_found':
+        return { text: Drupal.t('This checkout order is no longer available.'), className: 'taler-checkout-status-warning', hidePayLink: true };
+      case 'unpaid':
+        return { text: Drupal.t('Payment pending. Continue in your Taler wallet.'), className: 'taler-checkout-status-pending', hidePayLink: false };
+      default:
+        return { text: Drupal.t('Checking payment status…'), className: 'taler-checkout-status-pending', hidePayLink: false };
+    }
+  }
+
+  function updateStatusElement(statusEl, status) {
+    const pres = statusToPresentation(status);
+    statusEl.textContent = pres.text;
+    statusEl.classList.remove('taler-checkout-status-success', 'taler-checkout-status-pending', 'taler-checkout-status-warning');
+    statusEl.classList.add(pres.className);
+    statusEl.setAttribute('data-taler-status', status);
+    return pres;
+  }
+
+  function hidePayLink(payLinkEl) {
+    if (!payLinkEl) {
+      return;
+    }
+    payLinkEl.classList.add('is-hidden');
+    payLinkEl.setAttribute('aria-hidden', 'true');
+    payLinkEl.setAttribute('tabindex', '-1');
+  }
+
+  Drupal.behaviors.talerCheckoutPolling = {
+    attach(context, settings) {
+      once('taler-checkout-polling', '.taler-checkout-page', context).forEach((pageEl) => {
+        const orderId = settings?.talerPaymentsCheckout?.orderId;
+        const statusUrl = settings?.talerPaymentsCheckout?.statusUrl;
+        const intervalMs = Number(settings?.talerPaymentsCheckout?.pollIntervalMs) || DEFAULT_INTERVAL_MS;
+
+        const statusEl = pageEl.querySelector('.taler-checkout-status');
+        const payLinkEl = pageEl.querySelector('.taler-checkout-pay-link');
+
+        if (!orderId || !statusUrl || !statusEl) {
+          return;
+        }
+
+        // Start from server-rendered state when available.
+        let currentStatus = statusEl.getAttribute('data-taler-status') || 'unknown';
+        updateStatusElement(statusEl, currentStatus);
+
+        if (isFinalStatus(currentStatus)) {
+          const pres = statusToPresentation(currentStatus);
+          if (pres.hidePayLink) {
+            hidePayLink(payLinkEl);
+          }
+          return;
+        }
+
+        let unknownPolls = 0;
+        let stopped = false;
+        let timerId = null;
+
+        const stop = () => {
+          stopped = true;
+          if (timerId) {
+            window.clearInterval(timerId);
+            timerId = null;
+          }
+        };
+
+        const poll = async () => {
+          if (stopped) {
+            return;
+          }
+
+          try {
+            const res = await window.fetch(statusUrl, {
+              method: 'GET',
+              credentials: 'same-origin',
+              headers: { Accept: 'application/json' },
+            });
+            const data = await res.json();
+            const currentStatus = (data && typeof data.status === 'string') ? data.status : 'unknown';
+
+            const pres = updateStatusElement(statusEl, currentStatus);
+
+            if (pres.hidePayLink) {
+              hidePayLink(payLinkEl);
+            }
+
+            if (isFinalStatus(currentStatus)) {
+              stop();
+              return;
+            }
+
+            if (currentStatus === 'unknown') {
+              unknownPolls += 1;
+              if (unknownPolls >= MAX_UNKNOWN_POLLS) {
+                stop();
+              }
+            } else {
+              unknownPolls = 0;
+            }
+          } catch (e) {
+            unknownPolls += 1;
+            if (unknownPolls >= MAX_UNKNOWN_POLLS) {
+              stop();
+            }
+          }
+        };
+
+        // Poll immediately, then on interval.
+        poll();
+        timerId = window.setInterval(poll, intervalMs);
+      });
+    },
+  };
+})(Drupal, once);
+

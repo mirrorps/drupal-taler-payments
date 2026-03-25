@@ -20,3 +20,10 @@ taler_payments.checkout_page:
     _title_callback: '\Drupal\taler_payments\Controller\TalerCheckoutController::checkoutTitle'
   requirements:
     _access: 'TRUE'
+
+taler_payments.checkout_status:
+  path: '/taler-payments/checkout/{order_id}/status'
+  defaults:
+    _controller: '\Drupal\taler_payments\Controller\TalerCheckoutController::status'
+  requirements:
+    _access: 'TRUE'

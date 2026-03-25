@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\taler_payments\Checkout\TalerCheckoutManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -146,6 +147,7 @@ final class TalerCheckoutController extends ControllerBase {
         '#value' => $message,
         '#attributes' => [
           'class' => ['taler-checkout-status', 'taler-checkout-status-success'],
+          'data-taler-status' => $status,
         ],
       ];
     }
@@ -156,6 +158,7 @@ final class TalerCheckoutController extends ControllerBase {
         '#value' => $this->t('Payment pending. Continue in your Taler wallet.'),
         '#attributes' => [
           'class' => ['taler-checkout-status', 'taler-checkout-status-pending'],
+          'data-taler-status' => $status,
         ],
       ];
       if (str_starts_with($pay_uri, 'taler://')) {
@@ -207,6 +210,7 @@ final class TalerCheckoutController extends ControllerBase {
         '#value' => $this->t('This checkout order is no longer available. Please go back and start a new payment.'),
         '#attributes' => [
           'class' => ['taler-checkout-status', 'taler-checkout-status-warning'],
+          'data-taler-status' => $status,
         ],
       ];
     }
@@ -217,11 +221,17 @@ final class TalerCheckoutController extends ControllerBase {
         '#value' => $this->t('Order status is currently unavailable. Please retry.'),
         '#attributes' => [
           'class' => ['taler-checkout-status', 'taler-checkout-status-warning'],
+          'data-taler-status' => $status,
         ],
       ];
     }
 
     $build['#attached']['library'][] = 'taler_payments/payment_button';
+    $build['#attached']['drupalSettings']['talerPaymentsCheckout'] = [
+      'orderId' => $order_id,
+      'statusUrl' => Url::fromRoute('taler_payments.checkout_status', ['order_id' => $order_id])->toString(),
+      'pollIntervalMs' => 3000,
+    ];
     $build['#attached']['html_head'][] = [
       [
         '#tag' => 'meta',
@@ -235,6 +245,27 @@ final class TalerCheckoutController extends ControllerBase {
     $build['#cache']['max-age'] = 0;
 
     return $build;
+  }
+
+  /**
+   * Returns current checkout status as JSON for polling.
+   */
+  public function status(string $order_id): JsonResponse {
+    $checkout = $this->checkoutManager->getCheckoutByOrderId($order_id);
+    if ($checkout === NULL) {
+      return new JsonResponse([
+        'status' => 'not_found',
+        'is_final' => TRUE,
+      ]);
+    }
+
+    $status = (string) ($checkout['status'] ?? 'unknown');
+    $is_final = in_array($status, ['paid', 'not_found', 'cancelled'], TRUE);
+
+    return new JsonResponse([
+      'status' => $status,
+      'is_final' => $is_final,
+    ]);
   }
 
   /**

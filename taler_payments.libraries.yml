@@ -1,6 +1,7 @@
 payment_button:
   js:
     js/taler-payment-button.js: {}
+    js/taler-checkout-polling.js: {}
   css:
     theme:
       css/taler-payment-button.css: {}

@@ -92,6 +92,10 @@
   box-shadow: 0 2px 6px rgb(13 71 161 / 25%);
 }
 
+.taler-checkout-page .taler-checkout-pay-link.is-hidden {
+  display: none;
+}
+
 .taler-checkout-page .taler-checkout-wallet-hint {
   /* margin-top: 0.35rem; */
   color: #475467;
