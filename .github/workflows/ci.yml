@@ -12,6 +12,8 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      COMPOSER_MAX_PARALLEL_HTTP: 1
     strategy:
       matrix:
         php-version: [ '8.1', '8.2', '8.3' ]
@@ -22,6 +24,7 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: composer
           extensions: dom, mbstring, openssl, xml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Drupal test project
         run: composer create-project drupal/recommended-project:^11.3 ci-drupal --no-interaction --no-progress
       - name: Install module into test project
