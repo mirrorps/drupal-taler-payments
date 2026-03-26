@@ -26,10 +26,11 @@ jobs:
           extensions: dom, mbstring, openssl, xml
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Drupal test project
-        run: composer create-project drupal/recommended-project:^11.3 ci-drupal --no-interaction --no-progress
+        run: composer create-project drupal/recommended-project:^11.3 ci-drupal --no-install --no-interaction --no-progress
       - name: Install module into test project
         working-directory: ci-drupal
         run: |
+          composer install --prefer-source --no-interaction --no-progress
           composer config repositories.local-module path ..
           composer config 'extra.installer-paths.web/modules/custom/{$name}' '["type:drupal-custom-module"]'
           composer require --dev phpunit/phpunit:^10.5 --with-all-dependencies --no-interaction --no-progress
