@@ -21,5 +21,16 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           tools: composer
-      - run: composer install --prefer-dist --no-progress
-      - run: ./vendor/bin/phpunit --testdox
+          extensions: dom, mbstring, openssl, xml
+      - name: Create Drupal test project
+        run: composer create-project drupal/recommended-project:^11.3 ci-drupal --no-interaction --no-progress
+      - name: Install module into test project
+        working-directory: ci-drupal
+        run: |
+          composer config repositories.local-module path ..
+          composer config 'extra.installer-paths.web/modules/custom/{$name}' '["type:drupal-custom-module"]'
+          composer require --dev phpunit/phpunit:^10.5 --with-all-dependencies --no-interaction --no-progress
+          composer require drupal/taler_payments:*@dev --no-interaction --no-progress
+      - name: Run module unit tests
+        working-directory: ci-drupal
+        run: ./vendor/bin/phpunit web/modules/custom/taler_payments/tests/src/Unit --testdox
