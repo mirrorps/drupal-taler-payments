@@ -37,4 +37,4 @@ jobs:
           composer require drupal/taler_payments:*@dev --prefer-source --no-interaction --no-progress
       - name: Run module unit tests
         working-directory: ci-drupal
-        run: ./vendor/bin/phpunit web/modules/custom/taler_payments/tests/src/Unit --testdox
+        run: ./vendor/bin/phpunit ../tests/src/Unit --testdox
