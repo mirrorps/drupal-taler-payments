@@ -42,9 +42,26 @@ final class TalerCheckoutControllerTest extends TestCase {
 
   private function createController(?TalerCheckoutManagerInterface $manager = NULL): TalerCheckoutController {
     $manager ??= $this->createMock(TalerCheckoutManagerInterface::class);
+    $this->initializeUrlGeneratorContainer();
     $controller = new TalerCheckoutController($manager);
     $controller->setStringTranslation($this->createTranslationStub());
     return $controller;
+  }
+
+  /**
+   * Initializes a minimal container for Url::fromRoute() usage in unit tests.
+   */
+  private function initializeUrlGeneratorContainer(): void {
+    $url_generator = $this->createMock(UrlGeneratorInterface::class);
+    $url_generator->method('generateFromRoute')
+      ->willReturnCallback(static function (string $route_name, array $parameters = []): string {
+        $order_id = isset($parameters['order_id']) ? (string) $parameters['order_id'] : 'test-order';
+        return '/mock/' . $route_name . '/' . $order_id;
+      });
+
+    $container = new ContainerBuilder();
+    $container->set('url_generator', $url_generator);
+    \Drupal::setContainer($container);
   }
 
   /**
@@ -149,6 +166,10 @@ final class TalerCheckoutControllerTest extends TestCase {
     $this->assertSame('Example summary', $build['meta']['summary']['value']['#value']);
     $this->assertSame('EUR:1.00', $build['meta']['amount']['value']['#value']);
     $this->assertSame('taler://pay/mock', $build['pay_link']['#attributes']['href']);
+    $this->assertArrayHasKey('qr_intro', $build);
+    $this->assertSame('Or scan this QR code with your mobile wallet:', (string) $build['qr_intro']['#value']);
+    $this->assertArrayHasKey('qr_code', $build);
+    $this->assertSame('taler://pay/mock', $build['qr_code']['#attributes']['data-taler-pay-uri']);
     $this->assertArrayHasKey('wallet_hint', $build);
     $this->assertSame('taler_payments/payment_button', $build['#attached']['library'][0]);
     $this->assertSame('order-1', $build['#attached']['drupalSettings']['talerPaymentsCheckout']['orderId']);

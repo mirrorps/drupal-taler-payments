@@ -191,6 +191,21 @@ final class TalerCheckoutController extends ControllerBase {
             ],
           ],
         ];
+        $build['qr_intro'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Or scan this QR code with your mobile wallet:'),
+          '#attributes' => [
+            'class' => ['taler-checkout-qr-intro'],
+          ],
+        ];
+        $build['qr_code'] = [
+          '#type' => 'container',
+          '#attributes' => [
+            'class' => ['taler-checkout-qr-code'],
+            'data-taler-pay-uri' => $pay_uri,
+          ],
+        ];
       }
       else {
         $build['status_invalid_uri'] = [

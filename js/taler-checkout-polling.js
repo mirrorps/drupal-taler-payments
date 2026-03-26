@@ -54,6 +54,43 @@
     walletHintEl.setAttribute('aria-hidden', 'true');
   }
 
+  function hideQrCode(qrIntroEl, qrCodeEl) {
+    if (qrIntroEl) {
+      qrIntroEl.classList.add('is-hidden');
+      qrIntroEl.setAttribute('aria-hidden', 'true');
+    }
+    if (qrCodeEl) {
+      qrCodeEl.classList.add('is-hidden');
+      qrCodeEl.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function initQrCode(qrCodeEl) {
+    if (!qrCodeEl || typeof window.QRCode !== 'function') {
+      return;
+    }
+
+    const payUri = qrCodeEl.getAttribute('data-taler-pay-uri');
+    if (!payUri || !payUri.startsWith('taler://')) {
+      return;
+    }
+
+    if (qrCodeEl.getAttribute('data-qr-initialized') === 'true') {
+      return;
+    }
+
+    qrCodeEl.setAttribute('data-qr-initialized', 'true');
+    // 192x192 keeps a comfortable scan target on mobile screens.
+    new window.QRCode(qrCodeEl, {
+      text: payUri,
+      width: 192,
+      height: 192,
+      colorDark: '#111827',
+      colorLight: '#ffffff',
+      correctLevel: window.QRCode.CorrectLevel.M,
+    });
+  }
+
   Drupal.behaviors.talerCheckoutPolling = {
     attach(context, settings) {
       once('taler-checkout-polling', '.taler-checkout-page', context).forEach((pageEl) => {
@@ -64,10 +101,14 @@
         const statusEl = pageEl.querySelector('.taler-checkout-status');
         const payLinkEl = pageEl.querySelector('.taler-checkout-pay-link');
         const walletHintEl = pageEl.querySelector('.taler-checkout-wallet-hint');
+        const qrIntroEl = pageEl.querySelector('.taler-checkout-qr-intro');
+        const qrCodeEl = pageEl.querySelector('.taler-checkout-qr-code');
 
         if (!orderId || !statusUrl || !statusEl) {
           return;
         }
+
+        initQrCode(qrCodeEl);
 
         // Start from server-rendered state when available.
         let currentStatus = statusEl.getAttribute('data-taler-status') || 'unknown';
@@ -78,6 +119,7 @@
           if (pres.hidePayLink) {
             hidePayLink(payLinkEl);
             hideWalletHint(walletHintEl);
+            hideQrCode(qrIntroEl, qrCodeEl);
           }
           return;
         }
@@ -113,6 +155,7 @@
             if (pres.hidePayLink) {
               hidePayLink(payLinkEl);
               hideWalletHint(walletHintEl);
+              hideQrCode(qrIntroEl, qrCodeEl);
             }
 
             if (isFinalStatus(currentStatus)) {
