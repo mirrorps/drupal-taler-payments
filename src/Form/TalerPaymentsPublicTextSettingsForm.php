@@ -80,6 +80,7 @@ final class TalerPaymentsPublicTextSettingsForm extends ConfigFormBase {
     $form['public_text_customization']['public_call_to_action'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Call-To-Action'),
+      '#description' => $this->t('Shown on the payment card as title. Leave empty to use the default text.'),
       '#default_value' => (string) ($config->get('public_call_to_action') ?? ''),
       '#placeholder' => $this->publicTextProvider->getDefaultCallToAction(),
       '#maxlength' => 255,
