@@ -31,3 +31,12 @@ taler_payments.settings:
     access_token:
       type: string
       label: 'Encrypted Access Token'
+    public_call_to_action:
+      type: string
+      label: 'Checkout call-to-action'
+    public_thank_you_message:
+      type: string
+      label: 'Checkout thank-you message'
+    public_payment_button_cta:
+      type: string
+      label: 'Checkout payment button CTA'

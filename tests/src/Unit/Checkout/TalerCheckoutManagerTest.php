@@ -7,6 +7,7 @@ namespace Drupal\Tests\taler_payments\Unit\Checkout;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\taler_payments\Checkout\CheckoutIntentStoreInterface;
 use Drupal\taler_payments\Checkout\TalerCheckoutManager;
+use Drupal\taler_payments\PublicText\TalerPublicTextProviderInterface;
 use Drupal\taler_payments\Service\TalerClientManager;
 use PHPUnit\Framework\TestCase;
 use Taler\Api\Dto\Timestamp;
@@ -24,6 +25,15 @@ use Taler\Taler;
  * @group taler_payments
  */
 final class TalerCheckoutManagerTest extends TestCase {
+
+  private function createPublicTextProvider(): TalerPublicTextProviderInterface {
+    return $this->createConfiguredMock(TalerPublicTextProviderInterface::class, [
+      'getCallToAction' => 'Configured CTA',
+      'getThankYouMessage' => 'Thanks <> for paying!',
+      'getPaymentButtonCta' => 'Configured Pay',
+      'getFulfillmentMessageForApi' => 'Thanks for paying!',
+    ]);
+  }
 
   private function createUnpaidResponse(string $pay_uri = 'taler://pay/mock'): CheckPaymentUnpaidResponse {
     return new CheckPaymentUnpaidResponse(
@@ -75,7 +85,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $uuid = $this->createMock(UuidInterface::class);
     $uuid->expects($this->never())->method('generate');
 
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->beginCheckout('Existing', 'EUR:1.00', 'Summary');
 
     $this->assertSame('order-existing', $result['order_id']);
@@ -106,7 +116,10 @@ final class TalerCheckoutManagerTest extends TestCase {
     $order_api = $this->createMock(OrderClient::class);
     $order_api->expects($this->once())
       ->method('createOrder')
-      ->with($this->isInstanceOf(PostOrderRequest::class))
+      ->with($this->callback(static function (mixed $request): bool {
+        return $request instanceof PostOrderRequest
+          && $request->order->fulfillment_message === 'Thanks for paying!';
+      }))
       ->willReturn(new PostOrderResponse('order-created', 'tok-created'));
     $order_api->expects($this->once())
       ->method('getOrder')
@@ -125,7 +138,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $uuid = $this->createMock(UuidInterface::class);
     $uuid->method('generate')->willReturn('uuid-generated');
 
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->beginCheckout('   ', 'EUR:2.50', 'Order summary');
 
     $this->assertSame('order-created', $result['order_id']);
@@ -180,7 +193,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $uuid = $this->createMock(UuidInterface::class);
     $uuid->method('generate')->willReturn('uuid-generated');
 
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->beginCheckout('Existing', 'EUR:1.00', 'Summary');
 
     $this->assertSame('order-created', $result['order_id']);
@@ -197,7 +210,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $client_manager = $this->createMock(TalerClientManager::class);
     $uuid = $this->createMock(UuidInterface::class);
 
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $this->assertNull($manager->getCheckoutByOrderId('missing'));
   }
 
@@ -223,7 +236,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $client_manager->method('getClient')->willReturn($client);
 
     $uuid = $this->createMock(UuidInterface::class);
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->getCheckoutByOrderId('order-1');
 
     $this->assertSame('paid', $result['status'] ?? NULL);
@@ -260,7 +273,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $client_manager->method('getClient')->willReturn($client);
 
     $uuid = $this->createMock(UuidInterface::class);
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->getCheckoutByOrderId('order-1');
 
     $this->assertSame('paid', $result['status'] ?? NULL);
@@ -289,7 +302,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $client_manager->method('getClient')->willReturn($client);
 
     $uuid = $this->createMock(UuidInterface::class);
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->getCheckoutByOrderId('order-404');
 
     $this->assertSame('not_found', $result['status'] ?? NULL);
@@ -316,7 +329,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $client_manager->method('getClient')->willReturn($client);
 
     $uuid = $this->createMock(UuidInterface::class);
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->getCheckoutByOrderId('order-500');
 
     $this->assertSame('unknown', $result['status'] ?? NULL);
@@ -343,7 +356,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $client_manager->method('getClient')->willReturn($client);
 
     $uuid = $this->createMock(UuidInterface::class);
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->getCheckoutByOrderId('order-throwable');
 
     $this->assertSame('unknown', $result['status'] ?? NULL);
@@ -370,7 +383,7 @@ final class TalerCheckoutManagerTest extends TestCase {
     $client_manager->method('getClient')->willReturn($client);
 
     $uuid = $this->createMock(UuidInterface::class);
-    $manager = new TalerCheckoutManager($client_manager, $store, $uuid);
+    $manager = new TalerCheckoutManager($client_manager, $store, $this->createPublicTextProvider(), $uuid);
     $result = $manager->getCheckoutByOrderId('order-weird');
 
     $this->assertSame('unknown', $result['status'] ?? NULL);

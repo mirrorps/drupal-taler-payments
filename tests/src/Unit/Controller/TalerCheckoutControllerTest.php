@@ -10,6 +10,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\taler_payments\Checkout\TalerCheckoutManagerInterface;
 use Drupal\taler_payments\Controller\TalerCheckoutController;
+use Drupal\taler_payments\PublicText\TalerPublicTextProviderInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,10 +41,19 @@ final class TalerCheckoutControllerTest extends TestCase {
     return $translation;
   }
 
-  private function createController(?TalerCheckoutManagerInterface $manager = NULL): TalerCheckoutController {
+  private function createController(
+    ?TalerCheckoutManagerInterface $manager = NULL,
+    ?TalerPublicTextProviderInterface $public_text_provider = NULL,
+  ): TalerCheckoutController {
     $manager ??= $this->createMock(TalerCheckoutManagerInterface::class);
+    $public_text_provider ??= $this->createConfiguredMock(TalerPublicTextProviderInterface::class, [
+      'getCallToAction' => 'Configured CTA',
+      'getThankYouMessage' => 'Configured Thank you!',
+      'getPaymentButtonCta' => 'Configured Pay button',
+      'getFulfillmentMessageForApi' => 'Configured Thank you!',
+    ]);
     $this->initializeUrlGeneratorContainer();
-    $controller = new TalerCheckoutController($manager);
+    $controller = new TalerCheckoutController($manager, $public_text_provider);
     $controller->setStringTranslation($this->createTranslationStub());
     return $controller;
   }
@@ -69,10 +79,13 @@ final class TalerCheckoutControllerTest extends TestCase {
    */
   public function testCreateBuildsControllerFromContainer(): void {
     $manager = $this->createMock(TalerCheckoutManagerInterface::class);
+    $public_text_provider = $this->createMock(TalerPublicTextProviderInterface::class);
     $container = $this->createMock(ContainerInterface::class);
     $container->method('get')
-      ->with('taler_payments.checkout_manager')
-      ->willReturn($manager);
+      ->willReturnMap([
+        ['taler_payments.checkout_manager', $manager],
+        ['taler_payments.public_text_provider', $public_text_provider],
+      ]);
 
     $controller = TalerCheckoutController::create($container);
     $this->assertInstanceOf(TalerCheckoutController::class, $controller);
@@ -82,10 +95,13 @@ final class TalerCheckoutControllerTest extends TestCase {
    * @covers ::create
    */
   public function testCreateThrowsForInvalidServiceType(): void {
+    $public_text_provider = $this->createMock(TalerPublicTextProviderInterface::class);
     $container = $this->createMock(ContainerInterface::class);
     $container->method('get')
-      ->with('taler_payments.checkout_manager')
-      ->willReturn(new \stdClass());
+      ->willReturnMap([
+        ['taler_payments.checkout_manager', new \stdClass()],
+        ['taler_payments.public_text_provider', $public_text_provider],
+      ]);
 
     $this->expectException(\InvalidArgumentException::class);
     TalerCheckoutController::create($container);
@@ -163,9 +179,11 @@ final class TalerCheckoutControllerTest extends TestCase {
     $build = $controller->checkout('order-1');
 
     $this->assertSame('container', $build['#type']);
+    $this->assertSame('Configured CTA', (string) $build['intro']['#value']);
     $this->assertSame('Example summary', $build['meta']['summary']['value']['#value']);
     $this->assertSame('EUR:1.00', $build['meta']['amount']['value']['#value']);
     $this->assertSame('taler://pay/mock', $build['pay_link']['#attributes']['href']);
+    $this->assertSame('Configured Pay button', (string) $build['pay_link']['#value']);
     $this->assertArrayHasKey('qr_intro', $build);
     $this->assertSame('Or scan this QR code with your mobile wallet:', (string) $build['qr_intro']['#value']);
     $this->assertArrayHasKey('qr_code', $build);
@@ -173,6 +191,7 @@ final class TalerCheckoutControllerTest extends TestCase {
     $this->assertArrayHasKey('wallet_hint', $build);
     $this->assertSame('taler_payments/payment_button', $build['#attached']['library'][0]);
     $this->assertSame('order-1', $build['#attached']['drupalSettings']['talerPaymentsCheckout']['orderId']);
+    $this->assertSame('Configured Thank you!', $build['#attached']['drupalSettings']['talerPaymentsCheckout']['successMessage']);
     $this->assertSame('taler_payments_taler_support_meta', $build['#attached']['html_head'][0][1]);
     $this->assertSame(0, $build['#cache']['max-age']);
   }
@@ -196,7 +215,7 @@ final class TalerCheckoutControllerTest extends TestCase {
     $build = $controller->checkout('order-2');
 
     $this->assertArrayHasKey('status', $build);
-    $this->assertStringContainsString('paid-123', (string) $build['status']['#value']);
+    $this->assertSame('Configured Thank you!', (string) $build['status']['#value']);
   }
 
   /**
@@ -217,7 +236,7 @@ final class TalerCheckoutControllerTest extends TestCase {
     $build = $controller->checkout('order-2b');
 
     $this->assertArrayHasKey('status', $build);
-    $this->assertStringContainsString('Payment already completed.', (string) $build['status']['#value']);
+    $this->assertSame('Configured Thank you!', (string) $build['status']['#value']);
   }
 
   /**

@@ -20,5 +20,9 @@ services:
     arguments:
       - '@taler_payments.client_manager'
       - '@taler_payments.checkout_intent_store'
+      - '@taler_payments.public_text_provider'
       - '@uuid'
-      - '@logger.factory'
+  taler_payments.public_text_provider:
+    class: Drupal\taler_payments\PublicText\TalerPublicTextProvider
+    arguments:
+      - '@config.factory'

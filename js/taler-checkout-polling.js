@@ -13,10 +13,10 @@
     return status === 'paid' || status === 'cancelled' || status === 'not_found';
   }
 
-  function statusToPresentation(status) {
+  function statusToPresentation(status, successMessage) {
     switch (status) {
       case 'paid':
-        return { text: Drupal.t('Payment completed.'), className: 'taler-checkout-status-success', hidePayLink: true };
+        return { text: successMessage || Drupal.t('Payment completed.'), className: 'taler-checkout-status-success', hidePayLink: true };
       case 'cancelled':
         return { text: Drupal.t('Payment cancelled.'), className: 'taler-checkout-status-warning', hidePayLink: true };
       case 'not_found':
@@ -28,8 +28,8 @@
     }
   }
 
-  function updateStatusElement(statusEl, status) {
-    const pres = statusToPresentation(status);
+  function updateStatusElement(statusEl, status, successMessage) {
+    const pres = statusToPresentation(status, successMessage);
     statusEl.textContent = pres.text;
     statusEl.classList.remove('taler-checkout-status-success', 'taler-checkout-status-pending', 'taler-checkout-status-warning');
     statusEl.classList.add(pres.className);
@@ -97,6 +97,7 @@
         const orderId = settings?.talerPaymentsCheckout?.orderId;
         const statusUrl = settings?.talerPaymentsCheckout?.statusUrl;
         const intervalMs = Number(settings?.talerPaymentsCheckout?.pollIntervalMs) || DEFAULT_INTERVAL_MS;
+        const successMessage = settings?.talerPaymentsCheckout?.successMessage;
 
         const statusEl = pageEl.querySelector('.taler-checkout-status');
         const payLinkEl = pageEl.querySelector('.taler-checkout-pay-link');
@@ -112,10 +113,10 @@
 
         // Start from server-rendered state when available.
         let currentStatus = statusEl.getAttribute('data-taler-status') || 'unknown';
-        updateStatusElement(statusEl, currentStatus);
+        updateStatusElement(statusEl, currentStatus, successMessage);
 
         if (isFinalStatus(currentStatus)) {
-          const pres = statusToPresentation(currentStatus);
+          const pres = statusToPresentation(currentStatus, successMessage);
           if (pres.hidePayLink) {
             hidePayLink(payLinkEl);
             hideWalletHint(walletHintEl);
@@ -150,7 +151,7 @@
             const data = await res.json();
             const currentStatus = (data && typeof data.status === 'string') ? data.status : 'unknown';
 
-            const pres = updateStatusElement(statusEl, currentStatus);
+            const pres = updateStatusElement(statusEl, currentStatus, successMessage);
 
             if (pres.hidePayLink) {
               hidePayLink(payLinkEl);

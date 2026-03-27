@@ -1,1 +1,4 @@
 taler_base_url: ''
+public_call_to_action: ''
+public_thank_you_message: ''
+public_payment_button_cta: ''

@@ -6,6 +6,7 @@ namespace Drupal\taler_payments\Checkout;
 
 use Drupal\Component\Uuid\UuidInterface;
 // use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\taler_payments\PublicText\TalerPublicTextProviderInterface;
 use Drupal\taler_payments\Service\TalerClientManager;
 use Taler\Api\Order\Dto\Amount;
 use Taler\Api\Order\Dto\CheckPaymentPaidResponse;
@@ -27,6 +28,7 @@ final class TalerCheckoutManager implements TalerCheckoutManagerInterface {
   public function __construct(
     private readonly TalerClientManager $talerClientManager,
     private readonly CheckoutIntentStoreInterface $intentStore,
+    private readonly TalerPublicTextProviderInterface $publicTextProvider,
     private readonly UuidInterface $uuid,
     // private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {}
@@ -57,7 +59,7 @@ final class TalerCheckoutManager implements TalerCheckoutManagerInterface {
       summary: $summary !== '' ? $summary : 'Taler payment',
       amount: new Amount($amount),
       order_id: $order_id,
-      fulfillment_message: 'Payment received. Thank you!',
+      fulfillment_message: $this->publicTextProvider->getFulfillmentMessageForApi(),
     );
 
     $response = $this->talerClientManager

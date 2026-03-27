@@ -30,11 +30,12 @@ final class TalerPaymentsSettingsPageControllerTest extends TestCase {
       '\Drupal\taler_payments\Form\TalerPaymentsSettingsForm',
       '\Drupal\taler_payments\Form\TalerPaymentsUsernamePasswordSettingsForm',
       '\Drupal\taler_payments\Form\TalerPaymentsAccessTokenSettingsForm',
+      '\Drupal\taler_payments\Form\TalerPaymentsPublicTextSettingsForm',
     ];
 
     $form_builder = $this->createMock(FormBuilderInterface::class);
     $received_classes = [];
-    $form_builder->expects($this->exactly(3))
+    $form_builder->expects($this->exactly(4))
       ->method('getForm')
       ->willReturnCallback(function (string $form_class) use (&$received_classes): array {
         $received_classes[] = $form_class;
@@ -53,6 +54,7 @@ final class TalerPaymentsSettingsPageControllerTest extends TestCase {
       'base_url_form' => ['#stub' => $expected_classes[0]],
       'username_password_form' => ['#stub' => $expected_classes[1]],
       'access_token_form' => ['#stub' => $expected_classes[2]],
+      'public_text_customization_form' => ['#stub' => $expected_classes[3]],
     ], $result);
   }
 

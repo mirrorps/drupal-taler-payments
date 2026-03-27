@@ -7,6 +7,7 @@ namespace Drupal\taler_payments\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\taler_payments\Checkout\TalerCheckoutManagerInterface;
+use Drupal\taler_payments\PublicText\TalerPublicTextProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -20,6 +21,7 @@ final class TalerCheckoutController extends ControllerBase {
 
   public function __construct(
     private readonly TalerCheckoutManagerInterface $checkoutManager,
+    private readonly TalerPublicTextProviderInterface $publicTextProvider,
   ) {}
 
   /**
@@ -30,8 +32,12 @@ final class TalerCheckoutController extends ControllerBase {
     if (!$manager instanceof TalerCheckoutManagerInterface) {
       throw new \InvalidArgumentException('Service taler_payments.checkout_manager must implement TalerCheckoutManagerInterface.');
     }
+    $public_text_provider = $container->get('taler_payments.public_text_provider');
+    if (!$public_text_provider instanceof TalerPublicTextProviderInterface) {
+      throw new \InvalidArgumentException('Service taler_payments.public_text_provider must implement TalerPublicTextProviderInterface.');
+    }
 
-    return new static($manager);
+    return new static($manager, $public_text_provider);
   }
 
   /**
@@ -77,7 +83,7 @@ final class TalerCheckoutController extends ControllerBase {
       'intro' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Review your order details and complete payment with GNU Taler.'),
+        '#value' => $this->publicTextProvider->getCallToAction(),
         '#attributes' => [
           'class' => ['taler-checkout-intro'],
         ],
@@ -137,14 +143,10 @@ final class TalerCheckoutController extends ControllerBase {
     ];
 
     if ($status === 'paid') {
-      $already_paid_order_id = trim((string) ($checkout['already_paid_order_id'] ?? ''));
-      $message = $already_paid_order_id !== ''
-        ? $this->t('Payment already completed for related order @order_id.', ['@order_id' => $already_paid_order_id])
-        : $this->t('Payment already completed.');
       $build['status'] = [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $message,
+        '#value' => $this->publicTextProvider->getThankYouMessage(),
         '#attributes' => [
           'class' => ['taler-checkout-status', 'taler-checkout-status-success'],
           'data-taler-status' => $status,
@@ -165,7 +167,7 @@ final class TalerCheckoutController extends ControllerBase {
         $build['pay_link'] = [
           '#type' => 'html_tag',
           '#tag' => 'a',
-          '#value' => $this->t('Pay with Taler wallet in the browser'),
+          '#value' => $this->publicTextProvider->getPaymentButtonCta(),
           '#attributes' => [
             'href' => $pay_uri,
             'class' => ['button', 'button--primary', 'taler-checkout-pay-link'],
@@ -246,6 +248,7 @@ final class TalerCheckoutController extends ControllerBase {
       'orderId' => $order_id,
       'statusUrl' => Url::fromRoute('taler_payments.checkout_status', ['order_id' => $order_id])->toString(),
       'pollIntervalMs' => 3000,
+      'successMessage' => $this->publicTextProvider->getThankYouMessage(),
     ];
     $build['#attached']['html_head'][] = [
       [
