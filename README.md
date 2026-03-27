@@ -39,7 +39,7 @@ If you only need to use the module on your Drupal site:
 
 ## Installation
 
-Install the module in your Drupal codebase with Composer. The package will pull in its PHP dependencies automatically.
+Install the module in your Drupal codebase with Composer.
 
 Example from the Drupal project root:
 
