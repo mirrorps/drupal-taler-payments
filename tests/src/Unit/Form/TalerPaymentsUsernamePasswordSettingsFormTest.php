@@ -158,6 +158,9 @@ final class TalerPaymentsUsernamePasswordSettingsFormTest extends TestCase {
     $this->assertTrue($built_form['username_password']['password']['#required']);
     $this->assertSame('new-password', $built_form['username_password']['password']['#attributes']['autocomplete']);
     $this->assertArrayHasKey('actions', $built_form['username_password']);
+    $this->assertArrayHasKey('delete', $built_form['username_password']['actions']);
+    $this->assertSame('submit', $built_form['username_password']['actions']['delete']['#type']);
+    $this->assertSame('Delete', (string) $built_form['username_password']['actions']['delete']['#value']);
     $this->assertArrayNotHasKey('actions', $built_form);
   }
 
@@ -344,6 +347,41 @@ final class TalerPaymentsUsernamePasswordSettingsFormTest extends TestCase {
       ['username', 'my-user'],
       ['password', 'encrypted-password'],
     ], $sets);
+  }
+
+  /**
+   * @covers ::deleteUsernamePasswordSubmitForm
+   */
+  public function testDeleteUsernamePasswordSubmitFormClearsStoredCredentials(): void {
+    $editable_config = $this->createMock(Config::class);
+    $clears = [];
+    $editable_config->expects($this->exactly(3))
+      ->method('clear')
+      ->willReturnCallback(function (string $key) use (&$clears, $editable_config) {
+        $clears[] = $key;
+        return $editable_config;
+      });
+    $editable_config->expects($this->once())
+      ->method('save');
+
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->expects($this->once())
+      ->method('getEditable')
+      ->with('taler_payments.settings')
+      ->willReturn($editable_config);
+
+    $credential_encryptor = $this->createMock(TalerCredentialEncryptor::class);
+    $taler_client_manager = $this->createMock(TalerClientManager::class);
+    $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
+
+    $messenger = $this->createMock(MessengerInterface::class);
+    $messenger->expects($this->once())->method('addStatus');
+    $form->setMessenger($messenger);
+
+    $form_array = [];
+    $form->deleteUsernamePasswordSubmitForm($form_array, new FormState());
+
+    $this->assertSame(['instance_id', 'username', 'password'], $clears);
   }
 
 }

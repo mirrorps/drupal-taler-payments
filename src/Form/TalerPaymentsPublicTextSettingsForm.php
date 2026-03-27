@@ -109,6 +109,17 @@ final class TalerPaymentsPublicTextSettingsForm extends ConfigFormBase {
     // Keep submit action inside collapsible section.
     if (isset($form['actions']['submit'])) {
       $form['public_text_customization']['actions'] = $form['actions'];
+      $form['public_text_customization']['actions']['reset'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Reset to defaults'),
+        '#submit' => ['::resetToDefaultsSubmitForm'],
+        '#validate' => [],
+        '#limit_validation_errors' => [],
+        '#attributes' => [
+          'class' => ['button', 'button--danger'],
+          'onclick' => "return confirm('Are you sure you want to reset these values to defaults?');",
+        ],
+      ];
       unset($form['actions']);
     }
 
@@ -136,6 +147,20 @@ final class TalerPaymentsPublicTextSettingsForm extends ConfigFormBase {
       ->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Resets public text customization values back to defaults.
+   */
+  public function resetToDefaultsSubmitForm(array &$form, FormStateInterface $form_state): void {
+    $this->configFactory
+      ->getEditable('taler_payments.settings')
+      ->clear('public_call_to_action')
+      ->clear('public_thank_you_message')
+      ->clear('public_payment_button_cta')
+      ->save();
+
+    $this->messenger()->addStatus($this->t('Public text customization has been reset to defaults.'));
   }
 
 }

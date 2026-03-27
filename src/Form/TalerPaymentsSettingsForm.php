@@ -56,6 +56,17 @@ Example: https://backend.demo.taler.net/instances/sandbox'),
     // the section is collapsed.
     if (isset($form['actions']['submit'])) {
       $form['base_url']['actions'] = $form['actions'];
+      $form['base_url']['actions']['delete'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Delete'),
+        '#submit' => ['::deleteBaseUrlSubmitForm'],
+        '#validate' => [],
+        '#limit_validation_errors' => [],
+        '#attributes' => [
+          'class' => ['button', 'button--danger'],
+          'onclick' => "return confirm('Are you sure you want to delete this value?');",
+        ],
+      ];
       unset($form['actions']);
     }
 
@@ -98,6 +109,18 @@ Example: https://backend.demo.taler.net/instances/sandbox'),
       ->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Clears the saved Taler Base URL configuration.
+   */
+  public function deleteBaseUrlSubmitForm(array &$form, FormStateInterface $form_state): void {
+    $this->configFactory
+      ->getEditable('taler_payments.settings')
+      ->clear('taler_base_url')
+      ->save();
+
+    $this->messenger()->addStatus($this->t('The Taler Base URL has been deleted.'));
   }
 
 }

@@ -123,6 +123,17 @@ final class TalerPaymentsUsernamePasswordSettingsForm extends ConfigFormBase {
     // the section is collapsed.
     if (isset($form['actions']['submit'])) {
       $form['username_password']['actions'] = $form['actions'];
+      $form['username_password']['actions']['delete'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Delete'),
+        '#submit' => ['::deleteUsernamePasswordSubmitForm'],
+        '#validate' => [],
+        '#limit_validation_errors' => [],
+        '#attributes' => [
+          'class' => ['button', 'button--danger'],
+          'onclick' => "return confirm('Are you sure you want to delete these values?');",
+        ],
+      ];
       unset($form['actions']);
     }
 
@@ -200,6 +211,20 @@ final class TalerPaymentsUsernamePasswordSettingsForm extends ConfigFormBase {
       ->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Clears saved username/password credentials configuration.
+   */
+  public function deleteUsernamePasswordSubmitForm(array &$form, FormStateInterface $form_state): void {
+    $this->configFactory
+      ->getEditable('taler_payments.settings')
+      ->clear('instance_id')
+      ->clear('username')
+      ->clear('password')
+      ->save();
+
+    $this->messenger()->addStatus($this->t('Username and password credentials have been deleted.'));
   }
 
 }

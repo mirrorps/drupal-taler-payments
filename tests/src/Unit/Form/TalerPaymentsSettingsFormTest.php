@@ -107,6 +107,9 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
     $this->assertSame('url', $built_form['base_url']['taler_base_url']['#type']);
     $this->assertTrue($built_form['base_url']['taler_base_url']['#required']);
     $this->assertSame('https://backend.demo.taler.net/instances/default', $built_form['base_url']['taler_base_url']['#default_value']);
+    $this->assertArrayHasKey('delete', $built_form['base_url']['actions']);
+    $this->assertSame('submit', $built_form['base_url']['actions']['delete']['#type']);
+    $this->assertSame('Delete', (string) $built_form['base_url']['actions']['delete']['#value']);
   }
 
   /**
@@ -215,6 +218,34 @@ final class TalerPaymentsSettingsFormTest extends TestCase {
 
     $form_array = [];
     $form->submitForm($form_array, $form_state);
+  }
+
+  /**
+   * @covers ::deleteBaseUrlSubmitForm
+   */
+  public function testDeleteBaseUrlSubmitFormClearsConfiguredBaseUrl(): void {
+    $editable_config = $this->createMock(Config::class);
+    $editable_config->expects($this->once())
+      ->method('clear')
+      ->with('taler_base_url')
+      ->willReturnSelf();
+    $editable_config->expects($this->once())
+      ->method('save');
+
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->expects($this->once())
+      ->method('getEditable')
+      ->with('taler_payments.settings')
+      ->willReturn($editable_config);
+
+    $form = $this->createForm($config_factory);
+
+    $messenger = $this->createMock(MessengerInterface::class);
+    $messenger->expects($this->once())->method('addStatus');
+    $form->setMessenger($messenger);
+
+    $form_array = [];
+    $form->deleteBaseUrlSubmitForm($form_array, new FormState());
   }
 
 }

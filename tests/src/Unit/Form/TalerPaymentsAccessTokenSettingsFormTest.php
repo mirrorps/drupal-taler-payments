@@ -135,6 +135,9 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
     $this->assertSame('off', $built_form['access_token']['taler_access_token']['#attributes']['autocomplete']);
     $this->assertSame('Bearer secret-token:sandbox', $built_form['access_token']['taler_access_token']['#placeholder']);
     $this->assertArrayHasKey('actions', $built_form['access_token']);
+    $this->assertArrayHasKey('delete', $built_form['access_token']['actions']);
+    $this->assertSame('submit', $built_form['access_token']['actions']['delete']['#type']);
+    $this->assertSame('Delete', (string) $built_form['access_token']['actions']['delete']['#value']);
     $this->assertArrayNotHasKey('actions', $built_form);
   }
 
@@ -285,6 +288,36 @@ final class TalerPaymentsAccessTokenSettingsFormTest extends TestCase {
 
     $form_array = [];
     $form->submitForm($form_array, $form_state);
+  }
+
+  /**
+   * @covers ::deleteAccessTokenSubmitForm
+   */
+  public function testDeleteAccessTokenSubmitFormClearsStoredAccessToken(): void {
+    $editable_config = $this->createMock(Config::class);
+    $editable_config->expects($this->once())
+      ->method('clear')
+      ->with('access_token')
+      ->willReturnSelf();
+    $editable_config->expects($this->once())
+      ->method('save');
+
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->expects($this->once())
+      ->method('getEditable')
+      ->with('taler_payments.settings')
+      ->willReturn($editable_config);
+
+    $credential_encryptor = $this->createMock(TalerCredentialEncryptor::class);
+    $taler_client_manager = $this->createMock(TalerClientManager::class);
+    $form = $this->createForm($config_factory, $credential_encryptor, $taler_client_manager);
+
+    $messenger = $this->createMock(MessengerInterface::class);
+    $messenger->expects($this->once())->method('addStatus');
+    $form->setMessenger($messenger);
+
+    $form_array = [];
+    $form->deleteAccessTokenSubmitForm($form_array, new FormState());
   }
 
 }

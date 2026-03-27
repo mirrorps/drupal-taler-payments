@@ -105,6 +105,17 @@ final class TalerPaymentsAccessTokenSettingsForm extends ConfigFormBase {
     // the section is collapsed.
     if (isset($form['actions']['submit'])) {
       $form['access_token']['actions'] = $form['actions'];
+      $form['access_token']['actions']['delete'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Delete'),
+        '#submit' => ['::deleteAccessTokenSubmitForm'],
+        '#validate' => [],
+        '#limit_validation_errors' => [],
+        '#attributes' => [
+          'class' => ['button', 'button--danger'],
+          'onclick' => "return confirm('Are you sure you want to delete this value?');",
+        ],
+      ];
       unset($form['actions']);
     }
 
@@ -154,6 +165,18 @@ final class TalerPaymentsAccessTokenSettingsForm extends ConfigFormBase {
       ->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Clears the saved access token configuration.
+   */
+  public function deleteAccessTokenSubmitForm(array &$form, FormStateInterface $form_state): void {
+    $this->configFactory
+      ->getEditable('taler_payments.settings')
+      ->clear('access_token')
+      ->save();
+
+    $this->messenger()->addStatus($this->t('The access token has been deleted.'));
   }
 
 }

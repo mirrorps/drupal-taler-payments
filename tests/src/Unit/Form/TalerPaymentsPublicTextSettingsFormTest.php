@@ -79,6 +79,9 @@ final class TalerPaymentsPublicTextSettingsFormTest extends TestCase {
     $this->assertSame('Pay now', $built_form['public_text_customization']['public_payment_button_cta']['#default_value']);
     $this->assertSame('Pay with Taler wallet in the browser', $built_form['public_text_customization']['public_payment_button_cta']['#placeholder']);
     $this->assertArrayHasKey('actions', $built_form['public_text_customization']);
+    $this->assertArrayHasKey('reset', $built_form['public_text_customization']['actions']);
+    $this->assertSame('submit', $built_form['public_text_customization']['actions']['reset']['#type']);
+    $this->assertSame('Reset to defaults', (string) $built_form['public_text_customization']['actions']['reset']['#value']);
     $this->assertArrayNotHasKey('actions', $built_form);
   }
 
@@ -149,6 +152,47 @@ final class TalerPaymentsPublicTextSettingsFormTest extends TestCase {
       ['public_thank_you_message', 'B'],
       ['public_payment_button_cta', 'C'],
     ], $sets);
+  }
+
+  /**
+   * @covers ::resetToDefaultsSubmitForm
+   */
+  public function testResetToDefaultsSubmitFormClearsStoredCustomValues(): void {
+    $editable_config = $this->createMock(Config::class);
+    $clears = [];
+    $editable_config->expects($this->exactly(3))
+      ->method('clear')
+      ->willReturnCallback(function (string $key) use (&$clears, $editable_config) {
+        $clears[] = $key;
+        return $editable_config;
+      });
+    $editable_config->expects($this->once())->method('save');
+
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->expects($this->once())
+      ->method('getEditable')
+      ->with('taler_payments.settings')
+      ->willReturn($editable_config);
+
+    $public_text_provider = $this->createConfiguredMock(TalerPublicTextProviderInterface::class, [
+      'getDefaultCallToAction' => 'Review your order details and complete payment with GNU Taler.',
+      'getDefaultThankYouMessage' => 'Payment received. Thank you!',
+      'getDefaultPaymentButtonCta' => 'Pay with Taler wallet in the browser',
+    ]);
+
+    $form = $this->createForm($config_factory, $public_text_provider);
+    $messenger = $this->createMock(MessengerInterface::class);
+    $messenger->expects($this->once())->method('addStatus');
+    $form->setMessenger($messenger);
+
+    $form_array = [];
+    $form->resetToDefaultsSubmitForm($form_array, new FormState());
+
+    $this->assertSame([
+      'public_call_to_action',
+      'public_thank_you_message',
+      'public_payment_button_cta',
+    ], $clears);
   }
 
 }
