@@ -35,23 +35,17 @@ If you only need to use the module on your Drupal site:
 - PHP OpenSSL extension (`ext-openssl`)
 - Composer
 - Reachable GNU Taler Merchant Backend over HTTPS
-- The Composer package `mirrorps/taler-php`
+- The Composer package `mirrorps/drupal-taler-payments`
 
 ## Installation
 
-Install the module in your Drupal codebase and require its PHP dependencies with Composer.
+Install the module in your Drupal codebase with Composer. The package will pull in its PHP dependencies automatically.
 
 Example from the Drupal project root:
 
 ```bash
-composer require mirrorps/taler-php
+composer require mirrorps/drupal-taler-payments
 drush en taler_payments -y
-```
-
-If the module already exists in `web/modules/custom/taler_payments`, make sure the project dependencies are installed:
-
-```bash
-composer install
 ```
 
 ## Configuration
