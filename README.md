@@ -75,8 +75,8 @@ The settings page is split into four sections.
 - Enter the full Authorization header value
 - Example:
   `Bearer secret-token:sandbox`
-- Never commit or share a real token.
 - The token is encrypted before it is stored
+<br><br>** <i>Never commit or share a real token.</i>
 
 ### 3. Username And Password
 
