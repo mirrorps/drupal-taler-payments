@@ -39,6 +39,7 @@ final class TalerCredentialEncryptorTest extends TestCase {
     $this->assertTrue($encryptor->isEncryptionAvailable());
 
     $payload = $encryptor->encrypt('Bearer secret-token:sandbox');
+    $this->assertStringStartsWith('v2:', $payload);
     $this->assertNotSame('', $payload);
     $this->assertSame('Bearer secret-token:sandbox', $encryptor->decrypt($payload));
   }

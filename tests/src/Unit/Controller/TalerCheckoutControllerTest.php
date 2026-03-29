@@ -14,8 +14,6 @@ use Drupal\taler_payments\PublicText\TalerPublicTextProviderInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -105,48 +103,6 @@ final class TalerCheckoutControllerTest extends TestCase {
 
     $this->expectException(\InvalidArgumentException::class);
     TalerCheckoutController::create($container);
-  }
-
-  /**
-   * @covers ::start
-   */
-  public function testStartRejectsMissingAmount(): void {
-    $controller = $this->createController();
-    $request = new Request(query: ['title' => 'My order']);
-
-    $this->expectException(AccessDeniedHttpException::class);
-    $controller->start($request);
-  }
-
-  /**
-   * @covers ::start
-   */
-  public function testStartRedirectsToCheckoutPageWithTrimmedInputs(): void {
-    $manager = $this->createMock(TalerCheckoutManagerInterface::class);
-    $manager->expects($this->once())
-      ->method('beginCheckout')
-      ->with('Title', 'EUR:3.00', 'Summary')
-      ->willReturn(['order_id' => 'ord-123']);
-
-    $controller = $this->createController($manager);
-    $url_generator = $this->createMock(UrlGeneratorInterface::class);
-    $url_generator->expects($this->once())
-      ->method('generateFromRoute')
-      ->with('taler_payments.checkout_page', ['order_id' => 'ord-123'], [], FALSE)
-      ->willReturn('/checkout/ord-123');
-    $container = new ContainerBuilder();
-    $container->set('url_generator', $url_generator);
-    \Drupal::setContainer($container);
-
-    $request = new Request(query: [
-      'title' => '  Title  ',
-      'amount' => ' EUR:3.00 ',
-      'summary' => ' Summary ',
-    ]);
-
-    $response = $controller->start($request);
-    $this->assertInstanceOf(RedirectResponse::class, $response);
-    $this->assertStringContainsString('ord-123', $response->getTargetUrl());
   }
 
   /**

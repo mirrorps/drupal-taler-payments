@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\taler_payments;
 
-use Drupal\Core\Url;
+use Drupal\Core\Form\FormBuilderInterface;
 
 /**
  * Default implementation of {@link TalerPaymentButtonBuilderInterface}.
  */
 final class TalerPaymentButtonBuilder implements TalerPaymentButtonBuilderInterface {
+
+  public function __construct(
+    private readonly FormBuilderInterface $formBuilder,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -20,34 +24,15 @@ final class TalerPaymentButtonBuilder implements TalerPaymentButtonBuilderInterf
     $amount = trim((string) ($configuration['amount'] ?? ''));
     $summary = trim((string) ($configuration['summary'] ?? ''));
 
-    $build = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['taler-payment-button-wrapper'],
+    return $this->formBuilder->getForm(
+      '\Drupal\taler_payments\Form\TalerCheckoutStartForm',
+      [
+        'button_text' => $button_text,
+        'title' => $title,
+        'amount' => $amount,
+        'summary' => $summary,
       ],
-    ];
-
-    $build['link'] = [
-      '#type' => 'link',
-      '#title' => $button_text,
-      '#url' => Url::fromRoute('taler_payments.checkout_start', [], [
-        'query' => [
-          'title' => $title,
-          'amount' => $amount,
-          'summary' => $summary,
-        ],
-      ]),
-      '#attributes' => [
-        'class' => ['taler-payment-button'],
-        'data-disable-once' => 'true',
-      ],
-    ];
-
-    $build['#attached'] = [
-      'library' => ['taler_payments/payment_button'],
-    ];
-
-    return $build;
+    );
   }
 
 }

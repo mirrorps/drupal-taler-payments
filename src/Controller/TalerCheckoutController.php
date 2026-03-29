@@ -10,12 +10,10 @@ use Drupal\taler_payments\Checkout\TalerCheckoutManagerInterface;
 use Drupal\taler_payments\PublicText\TalerPublicTextProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * Handles checkout start and checkout page rendering.
+ * Handles checkout page rendering and status polling.
  */
 final class TalerCheckoutController extends ControllerBase {
 
@@ -38,27 +36,6 @@ final class TalerCheckoutController extends ControllerBase {
     }
 
     return new static($manager, $public_text_provider);
-  }
-
-  /**
-   * Creates or reuses checkout order and redirects to checkout page.
-   */
-  public function start(Request $request): RedirectResponse {
-    $title = trim((string) $request->query->get('title', ''));
-    $amount = trim((string) $request->query->get('amount', ''));
-    $summary = trim((string) $request->query->get('summary', ''));
-
-    if ($amount === '') {
-      throw new AccessDeniedHttpException('Invalid checkout request.');
-    }
-
-    $intent = $this->checkoutManager->beginCheckout($title, $amount, $summary);
-
-    return new RedirectResponse(
-      Url::fromRoute('taler_payments.checkout_page', [
-        'order_id' => (string) $intent['order_id'],
-      ])->toString()
-    );
   }
 
   /**

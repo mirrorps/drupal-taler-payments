@@ -182,11 +182,10 @@ final class TalerPaymentsUsernamePasswordSettingsForm extends ConfigFormBase {
     catch (\Throwable $e) {
 
       \Drupal::logger('taler_payments')->error(
-        'Taler auth validation failed for instance "@instance" and user "@user". Error: @message',
+        'Taler auth validation failed for instance "@instance". Error type: @type',
         [
           '@instance' => $instance_id,
-          '@user' => $username,
-          '@message' => $e->getMessage(),
+          '@type' => get_debug_type($e),
         ]
       );
 
